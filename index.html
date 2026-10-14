@@ -52,21 +52,104 @@
 
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--cream);
+      background-color: #faf7f2;
+      background-image: 
+        radial-gradient(ellipse 80% 60% at 15% 10%, rgba(247, 222, 230, 0.45) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 50% at 85% 25%, rgba(238, 224, 245, 0.4) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 20% 65%, rgba(249, 228, 220, 0.4) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 60% at 80% 85%, rgba(245, 220, 232, 0.45) 0%, transparent 60%),
+        linear-gradient(180deg, #faf7f2 0%, #f6f0e8 100%);
+      background-attachment: fixed;
       color: var(--text);
       overflow-x: hidden;
       cursor: none;
+      min-height: 100vh;
+      position: relative;
     }
 
-    /* ── Noise Overlay ── */
+    /* ── Atmospheric Ambient Blobs ── */
+    .ambient-blobs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      will-change: transform;
+    }
+    .blob-1 {
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle, rgba(232, 164, 184, 0.55), rgba(245, 218, 225, 0.2));
+      top: -100px;
+      right: -80px;
+      animation: floatBlob1 22s ease-in-out infinite alternate;
+    }
+    .blob-2 {
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(184, 164, 200, 0.42), rgba(230, 215, 240, 0.15));
+      top: 40%;
+      left: -120px;
+      animation: floatBlob2 26s ease-in-out infinite alternate;
+    }
+    .blob-3 {
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(245, 200, 190, 0.48), rgba(250, 225, 215, 0.15));
+      bottom: 5%;
+      right: -100px;
+      animation: floatBlob3 24s ease-in-out infinite alternate;
+    }
+    @keyframes floatBlob1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-60px, 80px) scale(1.12); }
+    }
+    @keyframes floatBlob2 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(70px, -60px) scale(1.08); }
+    }
+    @keyframes floatBlob3 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-80px, -70px) scale(1.1); }
+    }
+
+    /* ── Journal Notebook Subtle Grid ── */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(160, 120, 105, 0.12) 1.2px, transparent 1.2px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 50%, transparent 95%);
+      -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 50%, transparent 95%);
+    }
+
+    /* ── Subtle Vignette Frame ── */
+    .bg-vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(circle at center, transparent 65%, rgba(225, 205, 195, 0.22) 100%);
+    }
+
+    /* ── Enhanced Tactile Paper Texture ── */
     .noise {
       position: fixed;
       inset: 0;
       z-index: 9000;
       pointer-events: none;
-      opacity: 0.04;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-size: 180px;
+      opacity: 0.085;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      background-size: 140px;
+      mix-blend-mode: multiply;
     }
 
     /* ── Cursor ── */
@@ -170,6 +253,8 @@
       padding: 7rem 2.5rem;
       max-width: 1080px;
       margin: 0 auto;
+      position: relative;
+      z-index: 3;
     }
 
     .sec-tag {
@@ -1587,7 +1672,15 @@
 
 <body>
 
-  <!-- Noise -->
+  <!-- Background Atmosphere & Tactile Textures -->
+  <div class="ambient-blobs" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-vignette" aria-hidden="true"></div>
+  <!-- Noise / Paper Grain -->
   <div class="noise" aria-hidden="true"></div>
   <!-- Cursor -->
   <div class="cursor" id="cursor" aria-hidden="true"></div>
