@@ -933,98 +933,389 @@
       letter-spacing: .1em;
     }
 
-    /* ── Bucket List ── */
-    .bucket-list {
-      display: flex;
-      flex-direction: column;
-      gap: .65rem;
-      margin-bottom: 1.75rem;
+    /* ── Plans Board (Things We Should Probably Do) ── */
+    #bucketlist {
+      position: relative;
     }
 
-    .bucket-item {
+    .plans-header-wrap {
+      position: relative;
+      margin-bottom: 1.8rem;
+    }
+
+    .plans-annot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #fffcf7;
+      border: 1px dashed rgba(196, 86, 106, 0.4);
+      border-radius: 6px;
+      padding: 0.35rem 0.9rem;
+      font-family: 'Caveat', cursive;
+      font-size: clamp(1rem, 2vw, 1.18rem);
+      color: var(--pink-deep);
+      box-shadow: 0 2px 10px rgba(90, 40, 30, 0.05);
+      transform: rotate(-2deg);
+      margin-bottom: 0.85rem;
+      position: relative;
+    }
+    .plans-annot-badge::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 20px;
+      width: 34px;
+      height: 14px;
+      background: rgba(232, 164, 184, 0.4);
+      transform: rotate(-4deg);
+      backdrop-filter: blur(2px);
+    }
+
+    .plans-top-controls {
       display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin-bottom: 2.2rem;
       padding: 1.1rem 1.4rem;
-      cursor: none;
-      transition: all .3s var(--ease);
+      background: rgba(255, 252, 248, 0.85);
+      border: 1px dashed rgba(180, 140, 120, 0.25);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Handwritten Progress Display */
+    .plans-progress-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .plans-progress-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .plans-progress-status {
+      display: flex;
+      align-items: baseline;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .plans-progress-num {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+      color: var(--pink-deep);
+      font-style: italic;
+      font-weight: 700;
+    }
+    .plans-progress-comment {
+      font-family: 'Caveat', cursive;
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: var(--text-light);
+    }
+
+    /* "Pick one for us" button */
+    .plans-random-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+    .btn-random-plan {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.7rem 1.45rem;
+      background: #fff;
+      color: var(--text);
+      border: 1.5px solid rgba(196, 86, 106, 0.35);
+      border-radius: 100px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s var(--ease);
+      user-select: none;
+    }
+    .btn-random-plan:hover {
+      background: #fff;
+      border-color: var(--pink-deep);
+      color: var(--pink-deep);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(196, 86, 106, 0.2);
+    }
+    .btn-random-plan:active {
+      transform: translateY(0);
+    }
+    .random-dice {
+      font-size: 1.05rem;
+      display: inline-block;
+      transition: transform 0.4s var(--ease);
+    }
+    .btn-random-plan:hover .random-dice {
+      transform: rotate(35deg) scale(1.15);
+    }
+    .random-plan-hint {
+      font-family: 'Caveat', cursive;
+      font-size: 1.05rem;
+      color: var(--text-light);
+      transform: rotate(-1deg);
+      display: inline-block;
+      white-space: nowrap;
+      transition: color 0.3s ease;
+    }
+
+    /* ── Plans Scrapbook Board (Cards) ── */
+    .plans-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.45rem;
+      margin-bottom: 2.75rem;
+    }
+    @media (max-width: 960px) {
+      .plans-board {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+    }
+    @media (max-width: 600px) {
+      .plans-board {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+    }
+
+    .plan-card {
+      background: #fffcf8;
+      border: 1px solid rgba(180, 140, 120, 0.22);
+      border-radius: var(--radius-sm);
+      padding: 1.55rem 1.4rem 1.3rem;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 170px;
+      cursor: pointer;
+      transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.3s ease, background 0.3s ease;
       user-select: none;
     }
 
-    .bucket-item:hover {
-      border-color: var(--border-pink);
-      transform: translateX(4px);
+    /* Organic rotations for that tactile scrapbook feel */
+    .plan-card:nth-child(9n+1) { transform: rotate(-1.2deg); }
+    .plan-card:nth-child(9n+2) { transform: rotate(1.1deg); }
+    .plan-card:nth-child(9n+3) { transform: rotate(-0.8deg); }
+    .plan-card:nth-child(9n+4) { transform: rotate(1.4deg); }
+    .plan-card:nth-child(9n+5) { transform: rotate(-1.5deg); }
+    .plan-card:nth-child(9n+6) { transform: rotate(0.9deg); }
+    .plan-card:nth-child(9n+7) { transform: rotate(-1.1deg); }
+    .plan-card:nth-child(9n+8) { transform: rotate(1.3deg); }
+    .plan-card:nth-child(9n+9) { transform: rotate(-0.7deg); }
+
+    @media (hover: hover) {
+      .plan-card:hover {
+        transform: translateY(-5px) scale(1.015) rotate(0deg) !important;
+        box-shadow: var(--shadow-md);
+        border-color: rgba(196, 86, 106, 0.38);
+        z-index: 5;
+      }
     }
 
-    .bucket-item.done {
-      opacity: .65;
+    /* Washi Tape Strip on Cards */
+    .plan-tape {
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 48px;
+      height: 18px;
+      background: rgba(232, 164, 184, 0.45);
+      backdrop-filter: blur(2px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      pointer-events: none;
+      clip-path: polygon(0% 10%, 100% 0%, 96% 90%, 4% 100%);
+    }
+    .plan-tape.tape-cream {
+      background: rgba(220, 205, 185, 0.5);
+    }
+    .plan-tape.tape-lavender {
+      background: rgba(184, 164, 200, 0.45);
     }
 
-    .bucket-item.done:hover {
-      transform: none;
+    /* Plan Header & Tag */
+    .plan-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+    .plan-tag {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--pink-deep);
+      background: rgba(196, 86, 106, 0.08);
+      border-radius: 4px;
+      padding: 0.22rem 0.55rem;
+      font-family: monospace;
+    }
+    .plan-stamp-done {
+      display: none;
+      font-family: 'Caveat', cursive;
+      font-size: 1rem;
+      color: var(--pink-deep);
+      font-weight: 700;
+      transform: rotate(-3deg);
     }
 
-    .bucket-check {
-      width: 20px;
-      height: 20px;
-      min-width: 20px;
+    /* Plan Body Text */
+    .plan-body-text {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 1.15rem;
+      transition: color 0.3s ease;
+    }
+
+    /* Plan Bottom & Interactive Checkbox */
+    .plan-card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed rgba(180, 140, 120, 0.2);
+    }
+    .plan-note {
+      font-family: 'Caveat', cursive;
+      font-size: 0.98rem;
+      color: var(--text-light);
+      line-height: 1.25;
+    }
+
+    /* Custom Pink Circular Check Button */
+    .plan-check-btn {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
       border-radius: 50%;
-      border: 1.5px solid var(--border);
+      border: 1.8px solid rgba(196, 86, 106, 0.35);
+      background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: .7rem;
-      color: transparent;
-      transition: all .25s var(--ease);
-      margin-top: 2px;
+      cursor: pointer;
+      transition: all 0.25s var(--ease);
+      padding: 0;
+    }
+    .plan-check-svg {
+      width: 14px;
+      height: 14px;
+      stroke: #fff;
+      stroke-width: 2.5;
+      fill: none;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .bucket-item.done .bucket-check {
-      background: var(--pink-deep);
-      border-color: var(--pink-deep);
-      color: #fff;
+    /* Completed Plan State */
+    .plan-card.done {
+      background: rgba(255, 252, 248, 0.7);
+      border-color: rgba(180, 140, 120, 0.16);
+      box-shadow: none;
     }
-
-    .bucket-item.done .bucket-label {
+    .plan-card.done .plan-body-text {
       text-decoration: line-through;
       color: var(--text-faint);
     }
+    .plan-card.done .plan-stamp-done {
+      display: inline-block;
+    }
+    .plan-card.done .plan-tag {
+      opacity: 0.5;
+    }
+    .plan-card.done .plan-check-btn {
+      background: var(--pink-deep);
+      border-color: var(--pink-deep);
+      animation: checkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .plan-card.done .plan-check-svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+    @keyframes checkPop {
+      0% { transform: scale(0.8); }
+      50% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
 
-    .bucket-label {
-      font-size: .94rem;
-      color: var(--text-mid);
+    /* Highlighted Plan (when Pick One For Us is clicked) */
+    .plan-card.plan-highlighted {
+      border-color: var(--pink-deep) !important;
+      box-shadow: 0 0 0 3px rgba(196, 86, 106, 0.3), var(--shadow-md) !important;
+      transform: translateY(-8px) scale(1.03) rotate(0deg) !important;
+      background: #fff !important;
+      z-index: 20 !important;
+      animation: planGlow 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes planGlow {
+      0% { box-shadow: 0 0 0 3px rgba(196, 86, 106, 0.3), var(--shadow-md); }
+      100% { box-shadow: 0 0 0 6px rgba(196, 86, 106, 0.5), var(--shadow-lg); }
+    }
+
+    /* ── Bottom Humorous Disclaimer Note ── */
+    .plans-disclaimer {
+      max-width: 580px;
+      margin: 2.5rem auto 0;
+      text-align: center;
+      background: #fffcf8;
+      border: 1px dashed rgba(180, 140, 120, 0.28);
+      border-radius: var(--radius-sm);
+      padding: 1.4rem 1.8rem;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      transform: rotate(0.5deg);
+    }
+    .plans-disclaimer-tape {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 48px;
+      height: 16px;
+      background: rgba(232, 164, 184, 0.4);
+      clip-path: polygon(0% 10%, 100% 0%, 96% 90%, 4% 100%);
+    }
+    .disclaimer-main {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      font-style: italic;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .disclaimer-sub {
+      font-size: 0.86rem;
+      color: var(--text-light);
       line-height: 1.5;
+      margin-bottom: 0.45rem;
     }
-
-    .progress-wrap {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .progress-track {
-      flex: 1;
-      height: 3px;
-      background: var(--cream-dark);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--pink-muted), var(--pink-deep));
-      border-radius: 2px;
-      transition: width .5s var(--ease);
-      width: 0%;
-    }
-
-    .progress-label {
-      font-size: .82rem;
-      color: var(--text-faint);
-      white-space: nowrap;
+    .disclaimer-doodle {
+      font-family: 'Caveat', cursive;
+      font-size: 0.95rem;
+      color: var(--pink-deep);
+      display: inline-block;
+      transform: rotate(-1deg);
     }
 
     /* ── The Evidence (Refined & Enhanced) ── */
@@ -1771,14 +2062,41 @@
   <section id="bucketlist">
     <span class="sec-tag reveal">Section 04</span>
     <div class="divider reveal"></div>
-    <h2 class="sec-heading reveal">things we should <em>probably do</em></h2>
-    <p class="sec-sub reveal rd1">Not a pressure thing. Just a list. For reference.</p>
-    <div class="bucket-list reveal rd2" id="bucketList"></div>
-    <div class="progress-wrap reveal rd3">
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill"></div>
+
+    <div class="plans-header-wrap reveal">
+      <div class="plans-annot-badge">✦ things that may or may not actually happen ✦</div>
+      <h2 class="sec-heading">things we should <em>probably do</em></h2>
+      <p class="sec-sub rd1">Not a pressure thing. Just a list. For reference.</p>
+    </div>
+
+    <!-- Controls & Progress -->
+    <div class="plans-top-controls reveal rd2">
+      <div class="plans-progress-box">
+        <span class="plans-progress-title">PLANS ACCOMPLISHED</span>
+        <div class="plans-progress-status">
+          <span class="plans-progress-num" id="plansProgressNum">0 / 9 accomplished</span>
+          <span class="plans-progress-comment" id="plansProgressComment">we have made zero progress. concerning.</span>
+        </div>
       </div>
-      <span class="progress-label" id="progressLabel">0 / 0 done</span>
+
+      <div class="plans-random-wrap">
+        <button type="button" class="btn-random-plan" id="btnRandomPlan" onclick="pickRandomPlan()" aria-label="Pick a random plan for us">
+          <span class="random-dice">🎲</span>
+          <span>pick one for us</span>
+        </button>
+        <span class="random-plan-hint" id="randomPlanHint">← let fate decide</span>
+      </div>
+    </div>
+
+    <!-- Plans Scrapbook Board -->
+    <div class="plans-board reveal rd2" id="plansBoard"></div>
+
+    <!-- Humorous Disclaimer -->
+    <div class="plans-disclaimer reveal rd3">
+      <div class="plans-disclaimer-tape"></div>
+      <p class="disclaimer-main">“completion of these plans is not guaranteed”</p>
+      <p class="disclaimer-sub">especially if we spend the entire day arguing about where to eat</p>
+      <span class="disclaimer-doodle">✍︎ realistic disclaimer</span>
     </div>
   </section>
 
@@ -1880,14 +2198,69 @@
       CLASSIFIED_TEXT: "Unfortunately this information cannot be disclosed — because we both already know. Some things don't need to be written down to be true.",
 
       BUCKET_LIST: [
-        "Get food together — actually commit to a place this time",
-        "Go somewhere random with absolutely no plan",
-        "Find something neither of us has tried before",
-        "Take unnecessarily stupid pictures",
-        "Have one of those conversations that somehow lasts 4 hours",
-        "You try to ragebait me (inevitable, already on the calendar)",
-        "Hang out again",
-        "Add more things to this list"
+        {
+          id: "plan-1",
+          text: "Get food together — actually commit to a place this time",
+          tag: "high difficulty",
+          note: "we will spend 40 mins debating",
+          tape: "pink"
+        },
+        {
+          id: "plan-2",
+          text: "Go somewhere random with absolutely no plan",
+          tag: "0% planning",
+          note: "the nothing hangouts are the best ones",
+          tape: "cream"
+        },
+        {
+          id: "plan-3",
+          text: "Find a place neither of us has ever heard of",
+          tag: "unplanned detour",
+          note: "could be great, could be questionable",
+          tape: "none"
+        },
+        {
+          id: "plan-4",
+          text: "Take an unnecessarily stupid picture that makes no sense",
+          tag: "for the archive",
+          note: "must never see the light of day",
+          tape: "pink"
+        },
+        {
+          id: "plan-5",
+          text: "Have a completely unnecessary late-night adventure",
+          tag: "chaotic",
+          note: "zero adult supervision",
+          tape: "cream"
+        },
+        {
+          id: "plan-6",
+          text: "Try something just because it sounds like a terrible idea",
+          tag: "questionable judgment",
+          note: "strictly for scientific research",
+          tape: "none"
+        },
+        {
+          id: "plan-7",
+          text: "Have one of those conversations that somehow lasts 4 hours",
+          tag: "inevitable",
+          note: "starts normal, ends at 3 AM",
+          tape: "pink"
+        },
+        {
+          id: "plan-8",
+          text: "You try to ragebait me (already on the calendar)",
+          tag: "guaranteed",
+          note: "and I will still fall for it every time",
+          tape: "none"
+        },
+        {
+          id: "plan-9",
+          text: "Find something neither of us has tried before",
+          tag: "uncharted territory",
+          note: "no pressure, just vibes",
+          tape: "cream"
+        }
       ],
 
       EVIDENCE_SUB: "Proof that we actually have fun. Some of this should probably never see the light of day.",
@@ -1998,22 +2371,132 @@
       dr.innerHTML += `<div class="dossier-row"><span class="dossier-row-label">${r.label}</span><span class="dossier-row-val${r.flag ? ' flagged' : ''}">${r.val}</span></div>`;
     });
 
-    // ── Bucket list ──
-    const bl = document.getElementById('bucketList');
-    C.BUCKET_LIST.forEach(item => {
-      const d = document.createElement('div');
-      d.className = 'bucket-item';
-      d.onclick = () => { d.classList.toggle('done'); updateProg(); };
-      d.innerHTML = `<div class="bucket-check">&#10003;</div><div class="bucket-label">${item}</div>`;
-      bl.appendChild(d);
-    });
-    function updateProg() {
-      const total = document.querySelectorAll('.bucket-item').length;
-      const done = document.querySelectorAll('.bucket-item.done').length;
-      document.getElementById('progressFill').style.width = (total ? (done / total) * 100 : 0) + '%';
-      document.getElementById('progressLabel').textContent = `${done} / ${total} done`;
+    // ── Plans Board (Things We Should Probably Do) ──
+    const STORAGE_PLANS_KEY = 'tavisi_completed_plans';
+
+    function getCompletedPlans() {
+      try {
+        const stored = localStorage.getItem(STORAGE_PLANS_KEY);
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
     }
-    updateProg();
+
+    function saveCompletedPlans(ids) {
+      try {
+        localStorage.setItem(STORAGE_PLANS_KEY, JSON.stringify(ids));
+      } catch (e) {}
+    }
+
+    function updatePlansProgress(completedIds) {
+      const total = C.BUCKET_LIST.length;
+      const count = completedIds.length;
+      const numEl = document.getElementById('plansProgressNum');
+      const commentEl = document.getElementById('plansProgressComment');
+
+      if (numEl) {
+        numEl.textContent = `${count} / ${total} accomplished`;
+      }
+      if (commentEl) {
+        if (count === 0) {
+          commentEl.textContent = "we have made zero progress. concerning.";
+        } else if (count <= 2) {
+          commentEl.textContent = "okay wait, we are actually getting things done.";
+        } else if (count <= 5) {
+          commentEl.textContent = "look at us being unexpectedly productive.";
+        } else if (count < total) {
+          commentEl.textContent = "who allowed us to be this good at hanging out?";
+        } else {
+          commentEl.textContent = "we officially completed the entire list. legendary.";
+        }
+      }
+    }
+
+    function togglePlan(id) {
+      let completed = getCompletedPlans();
+      const card = document.getElementById(id);
+      if (completed.includes(id)) {
+        completed = completed.filter(x => x !== id);
+        if (card) card.classList.remove('done');
+      } else {
+        completed.push(id);
+        if (card) card.classList.add('done');
+      }
+      saveCompletedPlans(completed);
+      updatePlansProgress(completed);
+    }
+
+    function pickRandomPlan() {
+      const completed = getCompletedPlans();
+      let candidates = C.BUCKET_LIST.filter(p => !completed.includes(p.id));
+      if (candidates.length === 0) {
+        candidates = C.BUCKET_LIST;
+      }
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      if (!chosen) return;
+
+      document.querySelectorAll('.plan-card.plan-highlighted').forEach(el => el.classList.remove('plan-highlighted'));
+
+      const card = document.getElementById(chosen.id);
+      if (card) {
+        card.classList.add('plan-highlighted');
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        const hintEl = document.getElementById('randomPlanHint');
+        if (hintEl) {
+          hintEl.textContent = "okay, this one! ✍︎";
+          hintEl.style.color = "var(--pink-deep)";
+          setTimeout(() => {
+            hintEl.textContent = "← let fate decide";
+            hintEl.style.color = "";
+          }, 4500);
+        }
+
+        toast(`fate chose: "${chosen.text.slice(0, 30)}..." ✨`);
+      }
+    }
+
+    function renderPlans() {
+      const board = document.getElementById('plansBoard');
+      if (!board) return;
+      board.innerHTML = '';
+      const completed = getCompletedPlans();
+
+      C.BUCKET_LIST.forEach((item) => {
+        const isDone = completed.includes(item.id);
+        const card = document.createElement('div');
+        card.className = `plan-card${isDone ? ' done' : ''}`;
+        card.id = item.id;
+        card.onclick = (e) => {
+          togglePlan(item.id);
+        };
+
+        const tapeClass = item.tape === 'pink' ? 'plan-tape' : (item.tape === 'lavender' ? 'plan-tape tape-lavender' : (item.tape === 'cream' ? 'plan-tape tape-cream' : ''));
+        const tapeHtml = tapeClass ? `<div class="${tapeClass}"></div>` : '';
+
+        card.innerHTML = `
+          ${tapeHtml}
+          <div class="plan-card-top">
+            <span class="plan-tag">${item.tag || 'plan'}</span>
+            <span class="plan-stamp-done">checked off ✓</span>
+          </div>
+          <div class="plan-body-text">${item.text}</div>
+          <div class="plan-card-bottom">
+            <span class="plan-note">${item.note || ''}</span>
+            <button type="button" class="plan-check-btn" aria-label="Toggle plan completion">
+              <svg class="plan-check-svg" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        `;
+        board.appendChild(card);
+      });
+
+      updatePlansProgress(completed);
+    }
+    renderPlans();
 
     // ── Gallery Initialization ──
     initGallery();
@@ -2064,13 +2547,13 @@
       requestAnimationFrame(tick);
     })();
     document.addEventListener('mouseover', e => {
-      if (e.target.closest('a, button, .why-card, .incident, .bucket-item, .gallery-item, .gallery-empty, .gallery-action-btn, .gallery-photo-container, .dash-card, .lb-close')) {
+      if (e.target.closest('a, button, .why-card, .incident, .plan-card, .btn-random-plan, .plan-check-btn, .gallery-item, .gallery-empty, .gallery-action-btn, .gallery-photo-container, .dash-card, .lb-close')) {
         cur.classList.add('hovering');
         cring.classList.add('hovering');
       }
     });
     document.addEventListener('mouseout', e => {
-      if (e.target.closest('a, button, .why-card, .incident, .bucket-item, .gallery-item, .gallery-empty, .gallery-action-btn, .gallery-photo-container, .dash-card, .lb-close')) {
+      if (e.target.closest('a, button, .why-card, .incident, .plan-card, .btn-random-plan, .plan-check-btn, .gallery-item, .gallery-empty, .gallery-action-btn, .gallery-photo-container, .dash-card, .lb-close')) {
         cur.classList.remove('hovering');
         cring.classList.remove('hovering');
       }
