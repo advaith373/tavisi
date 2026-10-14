@@ -11,6 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Caveat:wght@400;600&display=swap"
     rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ── Reset & Base ── */
     *,
@@ -1727,6 +1728,8 @@
     //  CONFIG — change everything here, nowhere else
     // ================================================================
     const C = {
+      SUPABASE_URL: window.SUPABASE_URL || "",
+      SUPABASE_ANON_KEY: window.SUPABASE_ANON_KEY || "",
       HER_NAME: "Tavisi",
       MY_NAME: "you",
       SHREYA_NAME: "Shreya",
@@ -1997,97 +2000,62 @@
     }
 
     // ================================================================
-    //  INDEXEDDB PERSISTENCE FOR EVIDENCE PHOTOS
+    //  SUPABASE CLOUD PERSISTENCE FOR EVIDENCE PHOTOS
     // ================================================================
-    const DB_NAME = 'TavisiMemoriesDB';
-    const DB_VERSION = 1;
-    const STORE_NAME = 'evidence_photos';
+    const BUCKET_NAME = 'evidence-photos';
+    const TABLE_NAME = 'evidence_photos';
+    let supabaseClient = null;
+    let currentPhotosCache = {};
 
-    function openEvidenceDB() {
-      return new Promise((resolve) => {
-        if (!window.indexedDB) {
-          return resolve(null);
-        }
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = e => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains(STORE_NAME)) {
-            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+    async function getSupabase() {
+      if (supabaseClient) return supabaseClient;
+      if (!window.supabase) {
+        console.warn("Supabase SDK not loaded yet.");
+        return null;
+      }
+
+      let url = (C.SUPABASE_URL || window.SUPABASE_URL || '').trim();
+      let anonKey = (C.SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY || '').trim();
+
+      // 1. If not set directly in C or window, fetch from Vercel Serverless Function /api/config
+      if (!url || !anonKey) {
+        try {
+          const res = await fetch('/api/config');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.supabaseUrl && data.supabaseAnonKey) {
+              url = data.supabaseUrl.trim();
+              anonKey = data.supabaseAnonKey.trim();
+            }
           }
-        };
-        req.onsuccess = e => resolve(e.target.result);
-        req.onerror = () => resolve(null);
-      });
-    }
-
-    async function savePhotoToDB(id, dataUrl) {
-      try {
-        const db = await openEvidenceDB();
-        if (!db) {
-          try { localStorage.setItem('ev_photo_' + id, dataUrl); } catch (e) { }
-          return;
+        } catch (e) {
+          // Local dev without serverless api
         }
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readwrite');
-          const store = tx.objectStore(STORE_NAME);
-          store.put({ id: Number(id), dataUrl: dataUrl, updated: Date.now() });
-          tx.oncomplete = () => resolve(true);
-          tx.onerror = () => resolve(false);
-        });
-      } catch (err) {
-        console.error('Failed to save to DB:', err);
       }
-    }
 
-    async function removePhotoFromDB(id) {
-      try {
-        const db = await openEvidenceDB();
-        if (!db) {
-          try { localStorage.removeItem('ev_photo_' + id); } catch (e) { }
-          return;
+      // 2. Fallback to localStorage override (useful for testing)
+      if (!url || !anonKey) {
+        const lsUrl = localStorage.getItem('supabase_url');
+        const lsKey = localStorage.getItem('supabase_anon_key');
+        if (lsUrl && lsKey) {
+          url = lsUrl.trim();
+          anonKey = lsKey.trim();
         }
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readwrite');
-          const store = tx.objectStore(STORE_NAME);
-          store.delete(Number(id));
-          tx.oncomplete = () => resolve(true);
-          tx.onerror = () => resolve(false);
-        });
-      } catch (err) {
-        console.error('Failed to remove from DB:', err);
       }
-    }
 
-    async function getAllPhotosFromDB() {
-      try {
-        const db = await openEvidenceDB();
-        if (!db) {
-          const fallback = {};
-          C.GALLERY.forEach((_, i) => {
-            const item = localStorage.getItem('ev_photo_' + i);
-            if (item) fallback[i] = item;
-          });
-          return fallback;
+      if (url && anonKey) {
+        try {
+          supabaseClient = window.supabase.createClient(url, anonKey);
+          return supabaseClient;
+        } catch (err) {
+          console.error("Failed to initialize Supabase client:", err);
         }
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readonly');
-          const store = tx.objectStore(STORE_NAME);
-          const req = store.getAll();
-          req.onsuccess = () => {
-            const map = {};
-            (req.result || []).forEach(row => { map[row.id] = row.dataUrl; });
-            resolve(map);
-          };
-          req.onerror = () => resolve({});
-        });
-      } catch (err) {
-        console.error('Failed to get from DB:', err);
-        return {};
       }
+      return null;
     }
 
-    // ── Image compression for fast mobile loading & low storage ──
-    function compressImage(file, maxDimension = 1600, quality = 0.88) {
+    // ── Image compression to JPEG Blob for fast cloud uploads ──
+    function compressImageToBlob(file, maxDimension = 1600, quality = 0.88) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = reject;
@@ -2111,8 +2079,10 @@
             canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL('image/jpeg', quality);
-            resolve(dataUrl);
+            canvas.toBlob(blob => {
+              if (blob) resolve(blob);
+              else reject(new Error("Canvas toBlob failed"));
+            }, 'image/jpeg', quality);
           };
           img.src = ev.target.result;
         };
@@ -2121,59 +2091,60 @@
     }
 
     // ── Gallery Component Functions ──
-    function renderEvidenceCard(i, dataUrl = null) {
-      const g = C.GALLERY[i];
+    function renderEvidenceCard(i, imageUrl = null, storagePath = null) {
+      const g = C.GALLERY[i] || {};
       const slot = document.getElementById(`gs${i}`);
       if (!slot) return;
 
       const tagText = g.tag || `EVIDENCE 0${i + 1}`;
-      const dateText = g.date || 'that one random Tuesday';
+      const rawDate = (g.date || '').trim();
+      const hasDate = Boolean(rawDate);
 
-      if (dataUrl) {
+      if (imageUrl) {
         slot.classList.add('has-photo');
         slot.innerHTML = `
-      <input type="file" accept="image/*" class="gallery-file-input" id="fi${i}" aria-label="Upload photo for ${tagText}">
-      <div class="gallery-photo-container" onclick="handleCardClick(${i}, event)">
-        <img class="gallery-photo-img" src="${dataUrl}" alt="${g.caption}">
-        <div class="gallery-scrim"></div>
-        <div class="gallery-top-bar">
-          <div class="gallery-badge">
-            <span class="gallery-badge-tag">${tagText}</span>
-            <span class="gallery-badge-date">${dateText}</span>
+          <input type="file" accept="image/*" class="gallery-file-input" id="fi${i}" aria-label="Upload photo for ${tagText}">
+          <div class="gallery-photo-container" onclick="handleCardClick(${i}, event)">
+            <img class="gallery-photo-img" src="${imageUrl}" alt="${g.caption || tagText}">
+            <div class="gallery-scrim"></div>
+            <div class="gallery-top-bar">
+              <div class="gallery-badge">
+                <span class="gallery-badge-tag">${tagText}</span>
+                ${hasDate ? `<span class="gallery-badge-date">${rawDate}</span>` : ''}
+              </div>
+              <div class="gallery-actions">
+                <button type="button" class="gallery-action-btn" onclick="triggerPhotoPick(${i}, event)" title="Change photo" aria-label="Change photo">
+                  <span>Change</span>
+                </button>
+                <button type="button" class="gallery-action-btn btn-remove" onclick="removePhoto(${i}, event)" title="Remove photo" aria-label="Remove photo">&#10005;</button>
+              </div>
+            </div>
+            <div class="gallery-caption-box">
+              <span class="gallery-caption-text">“${g.caption}”</span>
+            </div>
           </div>
-          <div class="gallery-actions">
-            <button type="button" class="gallery-action-btn" onclick="triggerPhotoPick(${i}, event)" title="Change photo" aria-label="Change photo">
-              <span>Change</span>
-            </button>
-            <button type="button" class="gallery-action-btn btn-remove" onclick="removePhoto(${i}, event)" title="Remove photo" aria-label="Remove photo">&#10005;</button>
-          </div>
-        </div>
-        <div class="gallery-caption-box">
-          <span class="gallery-caption-text">“${g.caption}”</span>
-        </div>
-      </div>
-    `;
+        `;
         const input = slot.querySelector('.gallery-file-input');
         input.addEventListener('change', () => handlePhotoSelected(i, input));
       } else {
         slot.classList.remove('has-photo');
         slot.innerHTML = `
-      <input type="file" accept="image/*" class="gallery-file-input" id="fi${i}" aria-label="Upload photo for ${tagText}">
-      <div class="gallery-empty" onclick="triggerPhotoPick(${i}, event)" role="button" tabindex="0" aria-label="Add photo for ${tagText}">
-        <div class="gallery-empty-top">
-          <span class="gallery-empty-tag">${tagText}</span>
-          <span class="gallery-empty-date">${dateText}</span>
-        </div>
-        <div class="gallery-empty-center">
-          <div class="gallery-plus-icon">+</div>
-          <div class="gallery-empty-action">add a photo</div>
-          <div class="gallery-empty-hint">tap anywhere to choose</div>
-        </div>
-        <div class="gallery-empty-bottom">
-          <span class="gallery-empty-caption-label">“${g.caption}”</span>
-        </div>
-      </div>
-    `;
+          <input type="file" accept="image/*" class="gallery-file-input" id="fi${i}" aria-label="Upload photo for ${tagText}">
+          <div class="gallery-empty" onclick="triggerPhotoPick(${i}, event)" role="button" tabindex="0" aria-label="Add photo for ${tagText}">
+            <div class="gallery-empty-top">
+              <span class="gallery-empty-tag">${tagText}</span>
+              ${hasDate ? `<span class="gallery-empty-date">${rawDate}</span>` : ''}
+            </div>
+            <div class="gallery-empty-center">
+              <div class="gallery-plus-icon">+</div>
+              <div class="gallery-empty-action">add a photo</div>
+              <div class="gallery-empty-hint">tap anywhere to choose</div>
+            </div>
+            <div class="gallery-empty-bottom">
+              <span class="gallery-empty-caption-label">“${g.caption}”</span>
+            </div>
+          </div>
+        `;
         const input = slot.querySelector('.gallery-file-input');
         input.addEventListener('change', () => handlePhotoSelected(i, input));
       }
@@ -2193,34 +2164,120 @@
       const file = input.files && input.files[0];
       if (!file) return;
 
-      toast('loading photo...');
+      const client = await getSupabase();
+      if (!client) {
+        toast('Cloud storage not configured yet! Set SUPABASE_URL in Vercel.', 4000);
+        console.warn('Supabase not configured. Please add SUPABASE_URL and SUPABASE_ANON_KEY to Vercel environment variables.');
+        return;
+      }
+
+      toast('uploading photo to cloud...');
       try {
-        const dataUrl = await compressImage(file);
-        await savePhotoToDB(i, dataUrl);
-        renderEvidenceCard(i, dataUrl);
-        toast(`evidence #${i < 9 ? '0' + (i + 1) : (i + 1)} added ✨`);
+        // 1. Optimize image into lightweight JPEG Blob
+        const blob = await compressImageToBlob(file);
+
+        // 2. Upload to Supabase Storage
+        const filePath = `cards/card_${i}_${Date.now()}.jpg`;
+        const { error: uploadErr } = await client.storage
+          .from(BUCKET_NAME)
+          .upload(filePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (uploadErr) {
+          console.error('Storage upload error:', uploadErr);
+          throw uploadErr;
+        }
+
+        // 3. Get Public URL
+        const { data: urlData } = client.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+        const publicUrl = urlData.publicUrl;
+
+        // 4. Save metadata to Supabase Database
+        const g = C.GALLERY[i] || {};
+        const oldStoragePath = currentPhotosCache[i]?.storage_path;
+
+        const { error: dbErr } = await client.from(TABLE_NAME).upsert({
+          card_id: i,
+          image_url: publicUrl,
+          storage_path: filePath,
+          caption: (g.caption || '').trim(),
+          date: (g.date || '').trim(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'card_id' });
+
+        if (dbErr) {
+          console.error('Database upsert error:', dbErr);
+          throw dbErr;
+        }
+
+        // 5. Clean up previous storage file if replacing
+        if (oldStoragePath && oldStoragePath !== filePath) {
+          client.storage.from(BUCKET_NAME).remove([oldStoragePath]).catch(err => {
+            console.warn('Could not remove previous image file:', err);
+          });
+        }
+
+        // 6. Update cache & immediately render
+        currentPhotosCache[i] = {
+          image_url: publicUrl,
+          storage_path: filePath,
+          caption: g.caption,
+          date: g.date
+        };
+
+        renderEvidenceCard(i, publicUrl, filePath);
+        toast(`evidence #${i < 9 ? '0' + (i + 1) : (i + 1)} saved to cloud ✨`);
       } catch (err) {
-        console.error('Failed to load image:', err);
-        toast('could not load that photo, try another');
+        console.error('Failed to upload photo:', err);
+        toast('could not upload photo, check Supabase permissions');
       }
     }
 
     async function removePhoto(i, ev) {
       if (ev) ev.stopPropagation();
-      await removePhotoFromDB(i);
-      renderEvidenceCard(i, null);
-      toast('photo removed');
+
+      const client = await getSupabase();
+      if (!client) {
+        toast('Cloud storage not connected.');
+        return;
+      }
+
+      toast('removing photo...');
+      try {
+        const oldPath = currentPhotosCache[i]?.storage_path;
+
+        // 1. Delete from Supabase Database
+        const { error: dbErr } = await client.from(TABLE_NAME).delete().eq('card_id', i);
+        if (dbErr) {
+          console.error('Error deleting record from db:', dbErr);
+        }
+
+        // 2. Delete from Supabase Storage
+        if (oldPath) {
+          await client.storage.from(BUCKET_NAME).remove([oldPath]);
+        }
+
+        // 3. Clear cache & re-render empty state
+        delete currentPhotosCache[i];
+        renderEvidenceCard(i, null);
+        toast('photo removed from cloud');
+      } catch (err) {
+        console.error('Failed to remove photo:', err);
+        toast('failed to remove photo');
+      }
     }
 
     function handleCardClick(i, ev) {
       if (ev.target.closest('.gallery-actions')) return;
-      const g = C.GALLERY[i];
+      const g = C.GALLERY[i] || {};
       const slot = document.getElementById(`gs${i}`);
       const img = slot ? slot.querySelector('.gallery-photo-img') : null;
       if (img && img.src) {
         const tagText = g.tag || `EVIDENCE 0${i + 1}`;
-        const dateText = g.date || '';
-        const metaStr = dateText ? `${tagText} • ${dateText}` : tagText;
+        const rawDate = (g.date || '').trim();
+        const metaStr = rawDate ? `${tagText} • ${rawDate}` : tagText;
         openLB(img.src, g.caption, metaStr);
       }
     }
@@ -2229,6 +2286,7 @@
       const gg = document.getElementById('galleryGrid');
       gg.innerHTML = '';
 
+      // Render initial empty state cards immediately (zero layout shifts)
       C.GALLERY.forEach((g, i) => {
         const d = document.createElement('div');
         d.className = 'gallery-item';
@@ -2237,15 +2295,70 @@
         renderEvidenceCard(i, null);
       });
 
-      const stored = await getAllPhotosFromDB();
-      Object.keys(stored).forEach(id => {
-        if (stored[id]) {
-          renderEvidenceCard(id, stored[id]);
+      const client = await getSupabase();
+      if (!client) {
+        console.info('Supabase client not initialized yet. Add SUPABASE_URL and SUPABASE_ANON_KEY to Vercel.');
+        return;
+      }
+
+      // Fetch all photos from Supabase Database
+      try {
+        const { data: photos, error } = await client.from(TABLE_NAME).select('*');
+        if (error) {
+          console.error('Error fetching evidence photos from Supabase:', error);
+          return;
         }
-      });
+
+        if (photos && Array.isArray(photos)) {
+          photos.forEach(p => {
+            const id = Number(p.card_id);
+            if (id >= 0 && id < C.GALLERY.length) {
+              currentPhotosCache[id] = {
+                image_url: p.image_url,
+                storage_path: p.storage_path,
+                caption: p.caption,
+                date: p.date
+              };
+              renderEvidenceCard(id, p.image_url, p.storage_path);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load evidence photos:', err);
+      }
+
+      // Listen for realtime cloud updates across devices!
+      try {
+        client.channel('evidence_photos_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, payload => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const p = payload.new;
+              const id = Number(p.card_id);
+              if (id >= 0 && id < C.GALLERY.length) {
+                currentPhotosCache[id] = {
+                  image_url: p.image_url,
+                  storage_path: p.storage_path,
+                  caption: p.caption,
+                  date: p.date
+                };
+                renderEvidenceCard(id, p.image_url, p.storage_path);
+              }
+            } else if (payload.eventType === 'DELETE') {
+              const p = payload.old;
+              const id = Number(p.card_id);
+              if (id >= 0 && id < C.GALLERY.length) {
+                delete currentPhotosCache[id];
+                renderEvidenceCard(id, null);
+              }
+            }
+          })
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime subscription note:', e);
+      }
     }
 
-    // ── Lightbox ──
+        // ── Lightbox ──
     function openLB(src, cap, meta = '') {
       document.getElementById('lbImg').src = src;
       document.getElementById('lbCaption').textContent = `“${cap}”`;
